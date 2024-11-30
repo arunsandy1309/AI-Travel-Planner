@@ -1,10 +1,12 @@
-import { View, Text, Image, StyleSheet, Animated, Easing } from 'react-native';
+import { TouchableOpacity, View, Text, Image, StyleSheet, Animated, Easing } from 'react-native';
 import React, { useEffect, useRef } from 'react';
+import {useRouter} from 'expo-router'
 
 export default function Login() {
     const imagePosition = useRef(new Animated.Value(-200)).current; // Starts above the screen
     const containerPosition = useRef(new Animated.Value(600)).current; // Starts below the screen
-  
+    const router = useRouter();
+    
     useEffect(() => {
       // Image fall animation
       Animated.spring(imagePosition, {
@@ -60,18 +62,16 @@ export default function Login() {
             Discover your next adventure effortlessly. Personalized itineraries at your fingertips. Travel smarter with AI-driven insights.
           </Text>
   
-          <View style={styles.button}>
-            <Text
-              style={{
+          <TouchableOpacity style={styles.button}
+            onPress={()=>{console.log("Sign In button clicked!");
+            router.push('/auth/sign_in');}}>
+            <Text style={{
                 color: '#FFFFFF',
                 textAlign: 'center',
                 fontSize: 18,
-                fontFamily: 'outfit',
-              }}
-            >
-              Sign In With Google
-            </Text>
-          </View>
+                fontFamily: 'outfit'
+            }}>Sign In With Google</Text>
+            </TouchableOpacity>
         </Animated.View>
       </View>
     );
