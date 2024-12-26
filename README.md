@@ -126,6 +126,6 @@ This app is perfect for travelers who want a stress-free way to organize their a
 
 ## **License**
 
-This project is licensed under the MIT License. Feel free to contribute and customize it to fit your needs!
+Feel free to contribute and customize it to fit your needs!
 
 Happy Travels! 🎒✈️
