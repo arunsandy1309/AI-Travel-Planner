@@ -1,11 +1,12 @@
-import { TouchableOpacity, View, Text, StyleSheet, TextInput, ToastAndroid } from 'react-native'
-import React, { useEffect, useState } from 'react'
-import { useNavigation } from 'expo-router'
-import { Colors } from './../../../constants/Colors'
-import {useRouter} from 'expo-router'
-import { getAuth, createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword } from "firebase/auth";
-import {auth} from './../../../configs/FirebaseConfig'
-import { getFirestore, setDoc, doc } from "firebase/firestore";  
+import { TouchableOpacity, View, Text, StyleSheet, TextInput, ToastAndroid, Dimensions } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { useNavigation } from 'expo-router';
+import { useRouter } from 'expo-router';
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth, db } from './../../../configs/FirebaseConfig';
+import { doc, getDoc } from "firebase/firestore";
+
+const { width, height } = Dimensions.get('window'); // Get screen width and height
 
 export default function SignIn() {
   const navigation = useNavigation();
@@ -15,40 +16,49 @@ export default function SignIn() {
 
   useEffect(() => {
     navigation.setOptions({
-      headerShown: false
-    })
+      headerShown: false,
+    });
   }, []);
 
-  const onSignIn=()=>{
-        // Checking if the user has entered the details or not
-        if (!email || !password) {
-          ToastAndroid.show("Please Enter all the details", ToastAndroid.BOTTOM);
-          return; // Return early if any field is empty
-        }
-    
-    signInWithEmailAndPassword(auth, email, password)
-  .then((userCredential) => {
-    // Signed in 
-    const user = userCredential.user;
-    console.log("User Successfully Signed In");
-    router.replace("/mytrip")
-    // ...
-  })
-  .catch((error) => {
-    const errorCode = error.code;
-    const errorMessage = error.message;
-    console.log(errorMessage, errorCode);
-    if(errorCode=="auth/invalid-email"){
-      ToastAndroid.show("Invalid Email ID.", ToastAndroid.BOTTOM);
+  const onSignIn = async () => {
+    if (!email || !password) {
+      ToastAndroid.show("Please Enter all the details", ToastAndroid.BOTTOM);
+      return;
     }
-    else if(errorCode=="auth/invalid-credential"){
-      ToastAndroid.show("The provided credentials are Invalid.", ToastAndroid.BOTTOM);
+
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      console.log("User Successfully Signed In:", user.uid);
+
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        console.log("Fetched User Data:", userData);
+        ToastAndroid.show(`Welcome back, ${userData.firstName}!`, ToastAndroid.BOTTOM);
+        router.replace("/mytrip");
+      } else {
+        console.error("No user data found in Firestore.");
+        ToastAndroid.show("User data not found. Please contact support.", ToastAndroid.BOTTOM);
+      }
+    } catch (error) {
+    //  console.error("Error during sign in:", error);
+      const errorCode = error.code;
+
+      if (errorCode === "auth/invalid-email") {
+        ToastAndroid.show("Invalid Email ID.", ToastAndroid.BOTTOM);
+      } else if (errorCode === "auth/user-not-found") {
+        ToastAndroid.show("No account found with this email.", ToastAndroid.BOTTOM);
+      } else if (errorCode === "auth/wrong-password") {
+        ToastAndroid.show("Incorrect password. Please try again.", ToastAndroid.BOTTOM);
+      } else if (errorCode === "auth/invalid-credential"){
+        ToastAndroid.show("Invalid Credentials", ToastAndroid.BOTTOM);
+      } else {
+        ToastAndroid.show("Failed to sign in. Please try again.", ToastAndroid.BOTTOM);
+      }
     }
-    else{
-      ToastAndroid.show("Invalid Email or Password.", ToastAndroid.BOTTOM);
-    }
-  });
-  }
+  };
 
   return (
     <View style={styles.container}>
@@ -82,108 +92,103 @@ export default function SignIn() {
 
       {/* SignIn Button */}
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.singin_button}
-          onPress={() => {
-            console.log("Sign In button clicked!");
-            onSignIn();
-          }}>
+        <TouchableOpacity style={styles.singin_button} onPress={onSignIn}>
           <Text style={styles.singin_buttonText}>Sign In</Text>
         </TouchableOpacity>
       </View>
 
       {/* Create Account Button */}
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.create_account_button}
-          onPress={() => {
-            console.log("Create Account button clicked!");
-            router.replace("/auth/sign_up");
-          }}>
+        <TouchableOpacity
+          style={styles.create_account_button}
+          onPress={() => router.replace("/auth/sign_up")}
+        >
           <Text style={styles.create_account_buttonText}>Create Account</Text>
         </TouchableOpacity>
       </View>
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 50,
+    paddingTop: height * 0.08, 
     backgroundColor: '#FFFFFF',
     height: '100%',
-    width: "100%"
+    width: '100%',
   },
   title: {
-    paddingLeft: 15, 
+    paddingLeft: width * 0.05, 
     fontFamily: 'outfit-bold',
-    fontSize: 30,
+    fontSize: width * 0.08, 
   },
   subtitle: {
-    paddingLeft: 15, 
+    paddingLeft: width * 0.05, 
     fontFamily: 'outfit',
-    fontSize: 30,
+    fontSize: width * 0.07, 
     color: '#808080',
-    marginTop: 25,
+    marginTop: height * 0.02, 
   },
   greeting: {
-    paddingLeft: 15, 
+    paddingLeft: width * 0.05, 
     fontFamily: 'outfit',
-    fontSize: 30,
-    marginTop: 25,
+    fontSize: width * 0.07, 
+    marginTop: height * 0.02, 
     color: '#808080',
   },
   inputContainer: {
-    paddingLeft: 15, 
-    marginTop: 20,
+    paddingLeft: width * 0.05, 
+    marginTop: height * 0.02, 
     width: '95%',
   },
   inputLabel: {
     fontFamily: 'outfit',
-    fontSize: 20,
-    marginBottom: 5,
+    fontSize: width * 0.05, 
+    marginBottom: height * 0.005, 
   },
   input: {
-    paddingLeft: 15,
-    height: 60,
+    paddingLeft: width * 0.05,
+    height: height * 0.07,
     borderWidth: 1,
-    borderRadius: 25,
-    borderColor: '#ccc', // Light gray border
+    borderRadius: width * 0.05, 
+    borderColor: '#ccc',
     fontFamily: 'outfit',
-    fontSize: 18,
-    marginBottom: 15, // Reduced gap between fields
-    backgroundColor: '#F9F9F9', // Subtle background color
+    fontSize: width * 0.045, 
+    marginBottom: height * 0.015, 
+    backgroundColor: '#F9F9F9',
   },
   buttonContainer: {
-    width: '100%',  // Ensures the container takes up the full width
-    alignItems: 'center', // Centers the button horizontally
-    marginTop: 30, // Gives some space before the button
+    width: '100%',
+    alignItems: 'center',
+    marginTop: height * 0.03,
   },
   singin_button: {
-    padding: 15,
-    width: '70%',
+    paddingVertical: height * 0.02, 
+    paddingHorizontal: width * 0.2, 
     backgroundColor: '#000000',
-    borderRadius: 100,
-    alignItems: 'center', // Center text horizontally within button
-    justifyContent: 'center', // Center text vertically within button
+    borderRadius: width * 0.1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   create_account_button: {
-    padding: 15,
-    width: '70%',
-    borderColor:"#000000",
-    borderWidth:2,
-    borderRadius: 100,
-    alignItems: 'center', // Center text horizontally within button
-    justifyContent: 'center', // Center text vertically within button
+    paddingVertical: height * 0.02, 
+    paddingHorizontal: width * 0.1, 
+    borderColor: "#000000",
+    borderWidth: 2,
+    borderRadius: width * 0.1, 
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   singin_buttonText: {
     color: '#FFFFFF',
     textAlign: 'center',
-    fontSize: 18,
+    fontSize: width * 0.045, 
     fontFamily: 'outfit',
   },
   create_account_buttonText: {
     color: '#000000',
     textAlign: 'center',
-    fontSize: 18,
+    fontSize: width * 0.045, 
     fontFamily: 'outfit',
   },
 });
